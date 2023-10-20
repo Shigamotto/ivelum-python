@@ -1,0 +1,29 @@
+[run]
+omit =
+    */tests/*
+    */migrations/*
+    */management/commands/*
+    */admin.py
+    */admin/*.py
+    */static/*
+    */templates/*
+    */settings/*
+    */node_modules/*
+    manage.py
+    wsgi.py
+    common/debug_toolbar.py
+
+[report]
+show_missing = true
+skip_covered = true
+skip_empty = true
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    __all__ =
+    if settings.DEBUG
+    raise AssertionError
+    raise NotImplementedError
+    class .*\bProtocol\):
+    @(abc\.)?abstractmethod
+    TYPE_CHECKING:

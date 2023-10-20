@@ -1,0 +1,27 @@
+version: '3.7'
+
+x-app: &app
+  build:
+    context: ./
+    dockerfile: ./.docker/Dockerfile
+    args:
+      - REQUIREMENTS
+  restart: unless-stopped
+  ports:
+    - "127.0.0.1:8232:8232"
+  volumes:
+    - .:/app
+  environment:
+    - DJANGO_SETTINGS_MODULE=proxy_service.app.settings.base
+  env_file:
+    - ./.local/.env/app/.env-local-docker
+
+services:
+  app:
+    <<: *app
+    command: "runserver"
+volumes:
+  django_static_data:
+    driver: local
+  django_media_data:
+    driver: local

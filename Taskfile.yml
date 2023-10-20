@@ -1,0 +1,140 @@
+# https://taskfile.dev
+# https://github.com/sawadashota/go-task-completions
+
+version: 3
+
+vars:
+  LOCAL_APP_ENV_FILE: ./.local/.env/app/.env-local
+  PYTHON: python
+  PYTHON_VERSION: 3.11.3
+
+dotenv:
+  - .local/.env/taskfile/.env-taskfile
+
+tasks:
+  setup:python:
+    desc: Setup python env
+    cmds:
+      - pyenv install --skip-existing {{ .PYTHON_VERSION }}
+      - pyenv virtualenv {{ .PYTHON_VERSION }} proxy_service || true
+
+  setup:poetry:
+    desc: Setup poetry
+    cmds:
+      - task: poetry:install
+      - task: poetry:export
+
+  poetry:install:
+    desc: Install dependencies
+    cmds:
+      - PYENV_VERSION=proxy_service poetry install
+
+  poetry:export-run:
+    desc: Export runtime requirements.txt
+    cmds:
+      - poetry export -f requirements.txt -o requirements.txt --without-hashes
+
+  poetry:export-dev:
+    desc: Export dev requirements.txt
+    cmds:
+      - poetry export -f requirements.txt --with dev -o requirements.dev.txt --without-hashes
+
+  poetry:export:
+    desc: Export all requirements.txt
+    cmds:
+      - task: poetry:export-run
+      - task: poetry:export-dev
+
+  poetry:add:
+    desc: Add poetry dependency. Example `task poetry:add -- django requests`.
+    cmds:
+      - poetry add {{.CLI_ARGS}}
+      - task: poetry:export
+
+  poetry:add-dev:
+    desc: Add poetry dev dependency. Example `task poetry:add-dev -- pytest`.
+    cmds:
+      - poetry add -G dev {{.CLI_ARGS}}
+      - task: poetry:export-dev
+
+  format:sort-env-files:
+    desc: Alphabetically sort keys in all env files
+    cmds:
+      - LC_COLLATE=POSIX find . -name ".env*" -type f -exec sort -o {} {} \;
+
+  format:code:
+    desc: Reformat python code
+    cmds:
+      - isort --settings-path=./.isort.cfg .
+      - black .
+
+  format:
+    desc: Run all code formatting
+    cmds:
+      - task: format:sort-env-files
+      - task: format:code
+
+  lint:flake8:
+    desc: Run Flake8
+    cmds:
+      - flake8 --config=.flake8
+
+  lint:pylint:
+    desc: Run Pylint
+    cmds:
+      - pylint --rcfile=./.pylintrc ./src
+
+  lint:code-style:
+    desc: Check python code formatting
+    cmds:
+      - black --check --diff .
+      - isort -c --settings-path=./.isort.cfg .
+
+  lint:mypy:
+    desc: Run MyPy
+    cmds:
+      - |
+        PYTHONPATH=./src:$PYTHONPATH \
+        APP_ENV_FILE={{.LOCAL_APP_ENV_FILE}} \
+        mypy --config-file=./.mypy.ini --follow-imports=silent ./src
+
+  lint:deadfixtures:
+    desc: Check if there are any unused fixtures
+    cmds:
+      - |
+        PYTHONPATH=./src:$PYTHONPATH \
+        DJANGO_SETTINGS_MODULE=proxy_service.app.settings.base \
+        APP_ENV_FILE=./.local/.env/app/.env-local-tests \
+        pytest --dead-fixtures
+    dir: ./src
+
+  lint:
+    desc: Run all code checks
+    cmds:
+      - task: lint:code-style
+      - task: lint:flake8
+      - task: lint:pylint
+      - task: lint:mypy
+      - task: lint:deadfixtures
+
+  test:
+    desc: Run tests
+    cmds:
+      - |
+        PYTHONPATH=./src:$PYTHONPATH \
+        DJANGO_SETTINGS_MODULE=proxy_service.app.settings.base \
+        APP_ENV_FILE=../.local/.env/app/.env-local-tests \
+        pytest
+    dir: ./src
+
+  run:
+    desc: Run application for demo
+    cmds:
+      - |
+        docker-compose up -d
+
+  stop:
+    desc: Stop application for demo
+    cmds:
+      - |
+        docker-compose down

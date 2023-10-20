@@ -1,0 +1,22 @@
+[MASTER]
+ignore=migrations
+
+[FORMAT]
+max-line-length=120
+
+[DESIGN]
+max-args=10
+
+[BASIC]
+good-names=
+    i,
+    e,
+    logger,
+
+[MESSAGES CONTROL]
+disable=
+    all
+enable=
+    no-name-in-module,
+    undefined-variable,
+;    fixme,
